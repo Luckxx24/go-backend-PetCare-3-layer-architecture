@@ -23,6 +23,8 @@ Authentication: JWT (JSON Web Token)
 
 Security: Role-Based Access Control (RBAC)
 
+Containerization: Docker & Docker Compose
+
 🔐 Authentication & Security
 This project implements a secure authentication flow using JWT:
 
