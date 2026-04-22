@@ -99,18 +99,6 @@ func (S *Services) UpdateUser(ctx context.Context, ID uuid.UUID, nama, password,
 		return database.User{}, errors.New("Mohon masukan nama dan pastikan karakter password lebih dari 8")
 	}
 
-	okey := IsValidRole(role)
-
-	if !okey {
-		return database.User{}, errors.New("Role tidak termasuk dalam kategor")
-	}
-
-	roleEnum := database.Role(role)
-
-	if roleEnum == "Users" {
-		return database.User{}, errors.New("anda tidak memiliki hak akses ini")
-	}
-
 	_, err := S.StoreDB.Users.GetUseremail(ctx, email)
 
 	if err == nil {
@@ -131,7 +119,7 @@ func (S *Services) UpdateUser(ctx context.Context, ID uuid.UUID, nama, password,
 		Nama:     nama,
 		Password: string(passwords),
 		Email:    email,
-		Role:     roleEnum,
+		Role:     database.Role(role),
 		ID:       ID,
 	})
 

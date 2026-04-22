@@ -13,17 +13,54 @@ func RespondError(w http.ResponseWriter, code int, msg string) {
 	type Errors struct {
 		Error string `json:"error"`
 	}
+
+	Writejson(w, code, Errors{
+		Error: msg,
+	})
 }
 
 func ResponSuccess(w http.ResponseWriter, code int, payload interface{}) {
+	err := Writejson(w, code, payload)
+
+	if err != nil {
+		log.Printf("[MARSHALL ERROR] %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "internal server error 500"}`))
+	}
+
+}
+
+func Writejson(w http.ResponseWriter, code int, payload interface{}) error {
 	data, err := json.Marshal(payload)
 
 	if err != nil {
-		RespondError(w, 500, "gagal marshall dari database")
+		return err
 	}
 
-	w.Header().Add("contetn-type", "application/json")
+	w.Header().Add("content-type", "application/json")
 	w.WriteHeader(code)
 	w.Write(data)
 
+	return nil
+
+}
+
+func RespondWithBadRequest(w http.ResponseWriter, msg string) {
+	RespondError(w, 400, msg)
+}
+
+func RespondWithUnauthorized(w http.ResponseWriter, msg string) {
+	RespondError(w, 401, msg)
+}
+
+func RespondWithNotfound(w http.ResponseWriter, msg string) {
+	RespondError(w, 404, msg)
+}
+
+func RespondWithForbiden(w http.ResponseWriter, msg string) {
+	RespondError(w, 403, msg)
+}
+
+func RespondWithConflict(w http.ResponseWriter, msg string) {
+	RespondError(w, 409, msg)
 }
