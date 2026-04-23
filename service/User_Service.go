@@ -65,29 +65,29 @@ func (S *Services) CreateUser(ctx context.Context, nama, password, email, role s
 	return User, nil
 }
 
-func (S *Services) DeleteUser(ctx context.Context, ID uuid.UUID) (error, bool) {
+func (S *Services) DeleteUser(ctx context.Context, ID uuid.UUID) error {
 	role, ok := middleware.GetRoleFromContext(ctx)
 	if !ok {
-		return errors.New("gagal mendapatkan role dari context"), false
+		return errors.New("gagal mendapatkan role dari context")
 	}
 
 	okey := IsValidRole(role)
 
 	if !okey {
-		return errors.New("tidak dapat mendapatkan role dari context"), false
+		return errors.New("tidak dapat mendapatkan role dari context")
 	}
 
 	if role == "User" {
-		return errors.New("Anda tida memiliki akses ini "), false
+		return errors.New("Anda tida memiliki akses ini ")
 	}
 
 	err := S.StoreDB.Users.DeleteUser(ctx, ID)
 
 	if err != nil {
-		return errors.New("Gagal menghapus data"), false
+		return errors.New("Gagal menghapus data")
 	}
 
-	return nil, true
+	return nil
 
 }
 

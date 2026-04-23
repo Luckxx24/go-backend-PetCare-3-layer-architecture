@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"pet-care/cmd/jsonresponse"
 	"pet-care/internal/middleware"
+	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -103,4 +104,54 @@ func (app *Application) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.Service.UpdateUser(r.Context(), UserIDreal, params.Nama, params.Password, params.Email, params.Role)
+}
+
+func (app *Application) DeleteUser(w http.ResponseWriter, r *http.Request) {
+
+	UserIDstr := chi.URLParam(r, "id")
+
+	UserID, erro := uuid.Parse(UserIDstr)
+
+	if erro != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal menparse %v", erro))
+	}
+
+	err := app.Service.DeleteUser(r.Context(), UserID)
+
+	if err != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal meng hapus data %v", err))
+	}
+}
+
+func (app *Application) GetListUser(w http.ResponseWriter, r *http.Request) {
+	pagestr := r.URL.Query().Get("page")
+	pagesizestr := r.URL.Query().Get("pagesize")
+
+	Page := 1
+	PageSize := 10
+
+	if pagestr != "" {
+		p, err := strconv.Atoi(pagestr)
+
+		if err != nil && Page > 0 {
+			Page = p
+		}
+	}
+
+	if pagestr != "" {
+		ps, err := strconv.Atoi(pagesizestr)
+
+		if err != nil && ps > 0 {
+			PageSize = ps
+		}
+	}
+
+	User, erro := app.Service.ListsUserID(r.Context(), Page, PageSize)
+
+	if erro != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan data %v", erro))
+	}
+
+	jsonresponse.ResponSuccess(w, 200, User)
+
 }
