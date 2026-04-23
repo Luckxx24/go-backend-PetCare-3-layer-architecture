@@ -12,23 +12,13 @@ import (
 	"github.com/google/uuid"
 )
 
-func (S *Services) CreatePets(ctx context.Context, nama, jenis string, age int) (database.Pet, error) {
+func (S *Services) CreatePets(ctx context.Context, nama, jenis string, age int, usersID uuid.UUID) (database.Pet, error) {
 	nama = strings.TrimSpace(nama)
 	jenis = strings.TrimSpace(jenis)
 
 	if nama == "" || jenis == "" || age <= 0 {
 		return database.Pet{}, errors.New("harap isi kolom nama,jenis,age")
 
-	}
-
-	UsersIDparse, ok := middleware.GetIDFromContext(ctx)
-	if !ok {
-		return database.Pet{}, errors.New("gagal mendapatkan ID user dari context")
-	}
-	usersID, err := uuid.Parse(UsersIDparse)
-
-	if err != nil {
-		return database.Pet{}, err
 	}
 
 	ages := sql.NullInt32{
@@ -57,16 +47,16 @@ func (S *Services) CreatePets(ctx context.Context, nama, jenis string, age int) 
 	return pets, nil
 }
 
-func (S *Services) DeletePets(ctx context.Context, ID uuid.UUID) (bool, error) {
+func (S *Services) DeletePets(ctx context.Context, ID uuid.UUID) error {
 	IDuserstr, okey := middleware.GetIDFromContext(ctx)
 
 	if !okey {
-		return false, errors.New("tidal bisa mendapatkan ID dari context")
+		errors.New("tidal bisa mendapatkan ID dari context")
 	}
 	UserID, errs := uuid.Parse(IDuserstr)
 
 	if errs != nil {
-		return false, errs
+		return errs
 	}
 
 	err := S.StoreDB.Pets.DeletePets(ctx, database.DeletePetsParams{
@@ -75,10 +65,10 @@ func (S *Services) DeletePets(ctx context.Context, ID uuid.UUID) (bool, error) {
 	})
 
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
 func (S *Services) GetPetsMany(ctx context.Context, Page, PageSize int) ([]database.GetPetsManyRow, error) {
