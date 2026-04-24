@@ -114,3 +114,5 @@ func (app Application) DeletePets(w http.ResponseWriter, r *http.Request) {
 		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal menghapus data %v", err))
 	}
 }
+
+func (app Application) GetPets(w http.ResponseWriter, r *http.Request)
