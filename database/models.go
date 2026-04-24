@@ -100,6 +100,48 @@ func (ns NullConds) Value() (driver.Value, error) {
 	return string(ns.Conds), nil
 }
 
+type Kelamin string
+
+const (
+	KelaminJantan Kelamin = "Jantan"
+	KelaminBetina Kelamin = "Betina"
+)
+
+func (e *Kelamin) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = Kelamin(s)
+	case string:
+		*e = Kelamin(s)
+	default:
+		return fmt.Errorf("unsupported scan type for Kelamin: %T", src)
+	}
+	return nil
+}
+
+type NullKelamin struct {
+	Kelamin Kelamin
+	Valid   bool // Valid is true if Kelamin is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullKelamin) Scan(value interface{}) error {
+	if value == nil {
+		ns.Kelamin, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.Kelamin.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullKelamin) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.Kelamin), nil
+}
+
 type Role string
 
 const (
@@ -173,12 +215,18 @@ type Notification struct {
 }
 
 type Pet struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	Nama      string
-	Jenis     string
-	Age       sql.NullInt32
-	CreatedAt sql.NullTime
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	Nama         string
+	Jenis        string
+	Age          sql.NullInt32
+	CreatedAt    sql.NullTime
+	Catatan      sql.NullString
+	Berat        sql.NullString
+	JenisKelamin Kelamin
+	Ras          sql.NullString
+	IsVaxinated  sql.NullBool
+	PhotoPath    sql.NullString
 }
 
 type PetStatusLog struct {

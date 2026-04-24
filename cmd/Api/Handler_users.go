@@ -73,7 +73,7 @@ func (app *Application) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	err := decode.Decode(params)
 
 	if err != nil {
-		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal men-decode params"))
+		jsonresponse.RespondWithBadRequest(w, "gagal men-decode params")
 	}
 
 	role, ok := middleware.GetRoleFromContext(r.Context())

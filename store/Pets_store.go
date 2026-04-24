@@ -10,9 +10,11 @@ import (
 type Pets interface {
 	CreatePets(ctx context.Context, arg database.CreatePetsParams) (database.Pet, error)
 	DeletePets(ctx context.Context, arg database.DeletePetsParams) error
-	GetPetsID(ctx context.Context, id uuid.UUID) (database.GetPetsIDRow, error)
-	GetPetsMany(ctx context.Context, arg database.GetPetsManyParams) ([]database.GetPetsManyRow, error)
+	GetPetsListSt(ctx context.Context, arg database.GetPetsListStParams) ([]database.GetPetsListStRow, error)
 	UpdatePets(ctx context.Context, arg database.UpdatePetsParams) (database.Pet, error)
+	GetPetsListUser(ctx context.Context, arg database.GetPetsListUserParams) ([]database.GetPetsListUserRow, error)
+	GetPetsDetail(ctx context.Context, id uuid.UUID) (database.GetPetsDetailRow, error)
+	GetPetsByIDUser(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
 
 type pets struct {
@@ -27,12 +29,20 @@ func (p *pets) DeletePets(ctx context.Context, arg database.DeletePetsParams) er
 	return p.q.DeletePets(ctx, arg)
 }
 
-func (p *pets) GetPetsID(ctx context.Context, id uuid.UUID) (database.GetPetsIDRow, error) {
-	return p.q.GetPetsID(ctx, id)
+func (p *pets) GetPetsDetail(ctx context.Context, id uuid.UUID) (database.GetPetsDetailRow, error) {
+	return p.q.GetPetsDetail(ctx, id)
 }
 
-func (p *pets) GetPetsMany(ctx context.Context, arg database.GetPetsManyParams) ([]database.GetPetsManyRow, error) {
-	return p.q.GetPetsMany(ctx, arg)
+func (p *pets) GetPetsListUser(ctx context.Context, arg database.GetPetsListUserParams) ([]database.GetPetsListUserRow, error) {
+	return p.q.GetPetsListUser(ctx, arg)
+}
+
+func (p *pets) GetPetsByIDUser(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
+	return p.q.GetPetsByIDUser(ctx, userID)
+}
+
+func (p *pets) GetPetsListSt(ctx context.Context, arg database.GetPetsListStParams) ([]database.GetPetsListStRow, error) {
+	return p.q.GetPetsListSt(ctx, arg)
 }
 
 func (p *pets) UpdatePets(ctx context.Context, arg database.UpdatePetsParams) (database.Pet, error) {

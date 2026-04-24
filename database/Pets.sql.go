@@ -19,7 +19,7 @@ Insert into pets(
 ) values (
     $1,$2,$3,$4,$5,$6
     )
-RETURNING id, user_id, nama, jenis, age, created_at
+RETURNING id, user_id, nama, jenis, age, created_at, catatan, berat, jenis_kelamin, ras, is_vaxinated, photo_path
 `
 
 type CreatePetsParams struct {
@@ -48,6 +48,12 @@ func (q *Queries) CreatePets(ctx context.Context, arg CreatePetsParams) (Pet, er
 		&i.Jenis,
 		&i.Age,
 		&i.CreatedAt,
+		&i.Catatan,
+		&i.Berat,
+		&i.JenisKelamin,
+		&i.Ras,
+		&i.IsVaxinated,
+		&i.PhotoPath,
 	)
 	return i, err
 }
@@ -67,64 +73,127 @@ func (q *Queries) DeletePets(ctx context.Context, arg DeletePetsParams) error {
 	return err
 }
 
-const getPetsID = `-- name: GetPetsID :one
-Select nama,Jenis,age,user_id,ID from pets where ID = $1
+const getPetsByIDUser = `-- name: GetPetsByIDUser :one
+
+Select ID from pets where user_id = $1
 `
 
-type GetPetsIDRow struct {
-	Nama   string
-	Jenis  string
-	Age    sql.NullInt32
-	UserID uuid.UUID
-	ID     uuid.UUID
+func (q *Queries) GetPetsByIDUser(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getPetsByIDUser, userID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
-func (q *Queries) GetPetsID(ctx context.Context, id uuid.UUID) (GetPetsIDRow, error) {
-	row := q.db.QueryRowContext(ctx, getPetsID, id)
-	var i GetPetsIDRow
+const getPetsDetail = `-- name: GetPetsDetail :one
+Select p.nama,p.jenis,p.age,p.ID,p.catatan,p.berat,p.jenis_kelamin,p.ras,p.is_vaxinated,p.photo_path,u.nama 
+from pets p INNER JOIN users U ON U.ID = p.user_id where P.ID = $1
+`
+
+type GetPetsDetailRow struct {
+	Nama         string
+	Jenis        string
+	Age          sql.NullInt32
+	ID           uuid.UUID
+	Catatan      sql.NullString
+	Berat        sql.NullString
+	JenisKelamin Kelamin
+	Ras          sql.NullString
+	IsVaxinated  sql.NullBool
+	PhotoPath    sql.NullString
+	Nama_2       string
+}
+
+func (q *Queries) GetPetsDetail(ctx context.Context, id uuid.UUID) (GetPetsDetailRow, error) {
+	row := q.db.QueryRowContext(ctx, getPetsDetail, id)
+	var i GetPetsDetailRow
 	err := row.Scan(
 		&i.Nama,
 		&i.Jenis,
 		&i.Age,
-		&i.UserID,
 		&i.ID,
+		&i.Catatan,
+		&i.Berat,
+		&i.JenisKelamin,
+		&i.Ras,
+		&i.IsVaxinated,
+		&i.PhotoPath,
+		&i.Nama_2,
 	)
 	return i, err
 }
 
-const getPetsMany = `-- name: GetPetsMany :many
-
-SELECT p.nama, p.jenis, p.age, u.nama AS owner_name FROM pets p INNER JOIN users u ON p.user_id = u.ID
+const getPetsListSt = `-- name: GetPetsListSt :many
+SELECT p.nama, p.jenis,u.nama AS owner_name FROM pets p INNER JOIN users u ON p.user_id = u.ID
 ORDER BY p.created_at DESC
 OFFSET $1 LIMIT $2
 `
 
-type GetPetsManyParams struct {
+type GetPetsListStParams struct {
 	Offset int32
 	Limit  int32
 }
 
-type GetPetsManyRow struct {
+type GetPetsListStRow struct {
 	Nama      string
 	Jenis     string
-	Age       sql.NullInt32
 	OwnerName string
 }
 
-func (q *Queries) GetPetsMany(ctx context.Context, arg GetPetsManyParams) ([]GetPetsManyRow, error) {
-	rows, err := q.db.QueryContext(ctx, getPetsMany, arg.Offset, arg.Limit)
+func (q *Queries) GetPetsListSt(ctx context.Context, arg GetPetsListStParams) ([]GetPetsListStRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPetsListSt, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetPetsManyRow
+	var items []GetPetsListStRow
 	for rows.Next() {
-		var i GetPetsManyRow
+		var i GetPetsListStRow
+		if err := rows.Scan(&i.Nama, &i.Jenis, &i.OwnerName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPetsListUser = `-- name: GetPetsListUser :many
+Select nama,jenis,age,ID from pets where user_id = $1 ORDER by created_at DESC OFFSET $2 LIMIT $3
+`
+
+type GetPetsListUserParams struct {
+	UserID uuid.UUID
+	Offset int32
+	Limit  int32
+}
+
+type GetPetsListUserRow struct {
+	Nama  string
+	Jenis string
+	Age   sql.NullInt32
+	ID    uuid.UUID
+}
+
+func (q *Queries) GetPetsListUser(ctx context.Context, arg GetPetsListUserParams) ([]GetPetsListUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPetsListUser, arg.UserID, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPetsListUserRow
+	for rows.Next() {
+		var i GetPetsListUserRow
 		if err := rows.Scan(
 			&i.Nama,
 			&i.Jenis,
 			&i.Age,
-			&i.OwnerName,
+			&i.ID,
 		); err != nil {
 			return nil, err
 		}
@@ -141,7 +210,7 @@ func (q *Queries) GetPetsMany(ctx context.Context, arg GetPetsManyParams) ([]Get
 
 const updatePets = `-- name: UpdatePets :one
 update pets set nama = $1, jenis = $2, age = $3, created_at = $4 where ID = $5 and user_id = $6
-RETURNING id, user_id, nama, jenis, age, created_at
+RETURNING id, user_id, nama, jenis, age, created_at, catatan, berat, jenis_kelamin, ras, is_vaxinated, photo_path
 `
 
 type UpdatePetsParams struct {
@@ -170,6 +239,12 @@ func (q *Queries) UpdatePets(ctx context.Context, arg UpdatePetsParams) (Pet, er
 		&i.Jenis,
 		&i.Age,
 		&i.CreatedAt,
+		&i.Catatan,
+		&i.Berat,
+		&i.JenisKelamin,
+		&i.Ras,
+		&i.IsVaxinated,
+		&i.PhotoPath,
 	)
 	return i, err
 }

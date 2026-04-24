@@ -47,7 +47,7 @@ func (S *Services) CreatePets(ctx context.Context, nama, jenis string, age int, 
 	return pets, nil
 }
 
-func (S *Services) DeletePets(ctx context.Context, ID uuid.UUID) error {
+func (S *Services) DeletePets(ctx context.Context, UserID, ID uuid.UUID) error {
 	IDuserstr, okey := middleware.GetIDFromContext(ctx)
 
 	if !okey {
@@ -71,35 +71,62 @@ func (S *Services) DeletePets(ctx context.Context, ID uuid.UUID) error {
 	return nil
 }
 
-func (S *Services) GetPetsMany(ctx context.Context, Page, PageSize int) ([]database.GetPetsManyRow, error) {
+func (S *Services) GetPetsStaff(ctx context.Context, Page, PageSize int) ([]database.GetPetsListStRow, error) {
 
 	role, okey := middleware.GetRoleFromContext(ctx)
 
 	if !okey {
-		return []database.GetPetsManyRow{}, errors.New("tidal bisa mendapatkan role dari context")
+		return []database.GetPetsListStRow{}, errors.New("tidal bisa mendapatkan role dari context")
 	}
 
 	ok := IsValidRole(role)
 
 	if !ok {
-		return []database.GetPetsManyRow{}, errors.New("role tidak valid")
+		return []database.GetPetsListStRow{}, errors.New("role tidak valid")
 	}
 
-	if role == "Users" {
-		return []database.GetPetsManyRow{}, errors.New("anda tidak memiliki akses")
+	if role == "User" {
+		return []database.GetPetsListStRow{}, errors.New("anda tidak memiliki akses")
 	}
 	Offset := (Page - 1) * PageSize
 
-	PetsMany, err := S.StoreDB.Pets.GetPetsMany(ctx, database.GetPetsManyParams{
+	PetsMany, err := S.StoreDB.Pets.GetPetsListSt(ctx, database.GetPetsListStParams{
 		Offset: int32(Offset),
 		Limit:  int32(PageSize),
 	})
 
 	if err != nil {
-		return []database.GetPetsManyRow{}, err
+		return []database.GetPetsListStRow{}, err
+	}
+	return PetsMany, nil
+}
+
+func (S *Services) GetPetUser(ctx context.Context, Page, PageSize int) ([]database.GetPetsListUserRow, error) {
+	userIDstr, ok := middleware.GetIDFromContext(ctx)
+
+	if !ok {
+		return []database.GetPetsListUserRow{}, errors.New("gagal mendapatkan ID dari context")
 	}
 
-	return PetsMany, nil
+	UserID, err := uuid.Parse(userIDstr)
+
+	if err != nil {
+		return []database.GetPetsListUserRow{}, err
+	}
+
+	Offset := (Page - 1) * PageSize
+
+	petsmanyuser, errr := S.StoreDB.Pets.GetPetsListUser(ctx, database.GetPetsListUserParams{
+		UserID: UserID,
+		Offset: int32(Offset),
+		Limit:  int32(PageSize),
+	})
+
+	if errr != nil {
+		return []database.GetPetsListUserRow{}, errr
+	}
+
+	return petsmanyuser, nil
 }
 
 func (S *Services) UpdatePets(ctx context.Context, nama, jenis string, age int, ID uuid.UUID) (database.Pet, error) {
