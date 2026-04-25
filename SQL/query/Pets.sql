@@ -30,6 +30,6 @@ DELETE from pets where ID = $1 and user_id = $2;
 update pets set nama = $1, jenis = $2, age = $3,catatan = $4,berat =$5,jenis_kelamin =$6,ras=$7,is_vaxinated = $8,photo_path = $9 where ID = $10 and user_id = $11
 RETURNING *;
 
--- name: GetPetsByIDUser :one
+-- name: GetPetsByID :one
 
-Select ID from pets where user_id = $1;
+SELECT id FROM pets WHERE id = $1 AND user_id = $2;

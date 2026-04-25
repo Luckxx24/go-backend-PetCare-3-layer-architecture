@@ -14,7 +14,7 @@ type Pets interface {
 	UpdatePets(ctx context.Context, arg database.UpdatePetsParams) (database.Pet, error)
 	GetPetsListUser(ctx context.Context, arg database.GetPetsListUserParams) ([]database.GetPetsListUserRow, error)
 	GetPetsDetail(ctx context.Context, id uuid.UUID) (database.GetPetsDetailRow, error)
-	GetPetsByIDUser(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
+	GetPetsByID(ctx context.Context, arg database.GetPetsByIDParams) (uuid.UUID, error)
 }
 
 type pets struct {
@@ -37,8 +37,8 @@ func (p *pets) GetPetsListUser(ctx context.Context, arg database.GetPetsListUser
 	return p.q.GetPetsListUser(ctx, arg)
 }
 
-func (p *pets) GetPetsByIDUser(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
-	return p.q.GetPetsByIDUser(ctx, userID)
+func (p *pets) GetPetsByID(ctx context.Context, arg database.GetPetsByIDParams) (uuid.UUID, error) {
+	return p.q.GetPetsByID(ctx, arg)
 }
 
 func (p *pets) GetPetsListSt(ctx context.Context, arg database.GetPetsListStParams) ([]database.GetPetsListStRow, error) {

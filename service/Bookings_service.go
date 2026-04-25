@@ -18,21 +18,7 @@ func IsValidstats(status string) bool {
 	return false
 }
 
-func (S *Services) CreateNewBookings(ctx context.Context, ID, pet_id, user_id uuid.UUID, status string, startDate, endDate time.Time) (database.Booking, error) {
-
-	UserIDstr, ok := middleware.GetIDFromContext(ctx)
-
-	if !ok {
-		return database.Booking{}, errors.New("gagal mendapatkan id dari context")
-	}
-
-	UserID, _ := uuid.Parse(UserIDstr)
-
-	pet, err := S.StoreDB.Pets.GetPetsID(ctx, pet_id)
-
-	if err != nil || pet.ID != pet_id || pet.UserID != user_id {
-		return database.Booking{}, errors.New("error ketika mengambil data pets")
-	}
+func (S *Services) CreateNewBookings(ctx context.Context, pet_id, user_id uuid.UUID, status string, startDate, endDate time.Time) (database.Booking, error) {
 
 	okey := IsValidstats(status)
 	if !okey {
@@ -55,8 +41,8 @@ func (S *Services) CreateNewBookings(ctx context.Context, ID, pet_id, user_id uu
 	Bookings, err := S.StoreDB.Bookings.CreateNewBookings(ctx,
 		database.CreateNewBookingsParams{
 			ID:        uuid.New(),
-			PetID:     pet.ID,
-			UserID:    UserID,
+			PetID:     pet_id,
+			UserID:    user_id,
 			StartDate: startDate,
 			EndDate:   endDate,
 			Status:    database.BookingStatus(status),

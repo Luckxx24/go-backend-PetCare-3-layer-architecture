@@ -85,13 +85,18 @@ func (q *Queries) DeletePets(ctx context.Context, arg DeletePetsParams) error {
 	return err
 }
 
-const getPetsByIDUser = `-- name: GetPetsByIDUser :one
+const getPetsByID = `-- name: GetPetsByID :one
 
-Select ID from pets where user_id = $1
+SELECT id FROM pets WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) GetPetsByIDUser(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
-	row := q.db.QueryRowContext(ctx, getPetsByIDUser, userID)
+type GetPetsByIDParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetPetsByID(ctx context.Context, arg GetPetsByIDParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getPetsByID, arg.ID, arg.UserID)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
