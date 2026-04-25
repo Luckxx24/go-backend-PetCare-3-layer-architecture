@@ -15,9 +15,15 @@ import (
 func (app Application) CreatePet(w http.ResponseWriter, r *http.Request) {
 
 	type param struct {
-		Nama  string
-		Jenis string
-		Age   int
+		Nama         string
+		Jenis        string
+		Age          int
+		Catatan      string
+		Berat        string
+		JenisKelamin string
+		Ras          string
+		IsVaxinated  bool
+		PhotoPath    string
 	}
 
 	decode := json.NewDecoder(r.Body)
@@ -63,8 +69,14 @@ func (app Application) CreatePet(w http.ResponseWriter, r *http.Request) {
 	pet, err := app.Service.CreatePets(r.Context(),
 		params.Nama,
 		params.Jenis,
+		params.Catatan,
+		params.Ras,
+		params.PhotoPath,
+		params.Berat,
+		params.JenisKelamin,
 		params.Age,
-		userID)
+		userID,
+		params.IsVaxinated)
 
 	if err != nil {
 		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan pet %v", err))
@@ -75,6 +87,27 @@ func (app Application) CreatePet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app Application) UpdatePets(w http.ResponseWriter, r *http.Request) {
+
+	type param struct {
+		Nama         string
+		Jenis        string
+		Age          int
+		Catatan      string
+		Berat        string
+		JenisKelamin string
+		Ras          string
+		IsVaxinated  bool
+		PhotoPath    string
+	}
+
+	decode := json.NewDecoder(r.Body)
+	params := param{}
+
+	erro := decode.Decode(&params)
+
+	if erro != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendecode data %v", erro))
+	}
 	role, ok := middleware.GetRoleFromContext(r.Context())
 
 	if !ok {
@@ -108,12 +141,34 @@ func (app Application) UpdatePets(w http.ResponseWriter, r *http.Request) {
 
 		UserID = UserIDpars
 	}
+	idpetsstr := chi.URLParam(r, "id_pet")
 
-	err := app.Service.DeletePets(r.Context(), UserID)
+	if idpetsstr == "" {
+		jsonresponse.RespondWithBadRequest(w, "gagal mendapatkan id dari urlparam")
+	}
+	PetID, erros := uuid.Parse(idpetsstr)
+
+	if erros != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal men-parse ID %v", erros))
+	}
+
+	pets, err := app.Service.UpdatePets(r.Context(), params.Nama,
+		params.Jenis,
+		params.Catatan,
+		params.Ras,
+		params.PhotoPath,
+		params.Berat,
+		params.JenisKelamin,
+		params.Age,
+		PetID,
+		UserID,
+		params.IsVaxinated)
 
 	if err != nil {
-		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal menghapus data %v", err))
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mengupdate data %v", err))
+		return
 	}
+	jsonresponse.ResponSuccess(w, 200, pets)
 }
 
 func (app Application) GetPetslistUser(w http.ResponseWriter, r *http.Request) {

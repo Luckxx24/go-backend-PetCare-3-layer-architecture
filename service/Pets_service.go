@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (S *Services) CreatePets(ctx context.Context, nama, jenis string, age int, usersID uuid.UUID) (database.Pet, error) {
+func (S *Services) CreatePets(ctx context.Context, nama, jenis, catatan, ras, photo_path, Berat, JenisKelamin string, age int, usersID uuid.UUID, isvaxinated bool) (database.Pet, error) {
 	nama = strings.TrimSpace(nama)
 	jenis = strings.TrimSpace(jenis)
 
@@ -32,12 +32,18 @@ func (S *Services) CreatePets(ctx context.Context, nama, jenis string, age int, 
 	}
 
 	pets, err := S.StoreDB.Pets.CreatePets(ctx, database.CreatePetsParams{
-		ID:        uuid.New(),
-		UserID:    usersID,
-		Nama:      nama,
-		Jenis:     jenis,
-		Age:       ages,
-		CreatedAt: timenow,
+		ID:           uuid.New(),
+		UserID:       usersID,
+		Nama:         nama,
+		Jenis:        jenis,
+		Age:          ages,
+		CreatedAt:    timenow,
+		Catatan:      catatan,
+		Berat:        Berat,
+		JenisKelamin: database.Kelamin(JenisKelamin),
+		Ras:          ras,
+		IsVaxinated:  isvaxinated,
+		PhotoPath:    photo_path,
 	})
 
 	if err != nil {
@@ -48,16 +54,6 @@ func (S *Services) CreatePets(ctx context.Context, nama, jenis string, age int, 
 }
 
 func (S *Services) DeletePets(ctx context.Context, UserID, ID uuid.UUID) error {
-	IDuserstr, okey := middleware.GetIDFromContext(ctx)
-
-	if !okey {
-		errors.New("tidal bisa mendapatkan ID dari context")
-	}
-	UserID, errs := uuid.Parse(IDuserstr)
-
-	if errs != nil {
-		return errs
-	}
 
 	err := S.StoreDB.Pets.DeletePets(ctx, database.DeletePetsParams{
 		ID:     ID,
@@ -129,7 +125,7 @@ func (S *Services) GetPetUser(ctx context.Context, Page, PageSize int) ([]databa
 	return petsmanyuser, nil
 }
 
-func (S *Services) UpdatePets(ctx context.Context, nama, jenis string, age int, ID uuid.UUID) (database.Pet, error) {
+func (S *Services) UpdatePets(ctx context.Context, nama, jenis, catatan, ras, photo_path, Berat, JenisKelamin string, age int, ID, usersID uuid.UUID, isvaxinated bool) (database.Pet, error) {
 	nama = strings.TrimSpace(nama)
 	jenis = strings.TrimSpace(jenis)
 
@@ -154,11 +150,17 @@ func (S *Services) UpdatePets(ctx context.Context, nama, jenis string, age int, 
 	}
 
 	pets, err := S.StoreDB.Pets.UpdatePets(ctx, database.UpdatePetsParams{
-		Nama:   nama,
-		Jenis:  jenis,
-		Age:    ages,
-		ID:     ID,
-		UserID: usersID,
+		ID:           ID,
+		UserID:       usersID,
+		Nama:         nama,
+		Jenis:        jenis,
+		Age:          ages,
+		Catatan:      catatan,
+		Berat:        Berat,
+		JenisKelamin: database.Kelamin(JenisKelamin),
+		Ras:          ras,
+		IsVaxinated:  isvaxinated,
+		PhotoPath:    photo_path,
 	})
 
 	if err != nil {

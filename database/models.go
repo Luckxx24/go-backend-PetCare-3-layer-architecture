@@ -221,12 +221,12 @@ type Pet struct {
 	Jenis        string
 	Age          sql.NullInt32
 	CreatedAt    sql.NullTime
-	Catatan      sql.NullString
-	Berat        sql.NullString
+	Catatan      string
+	Berat        string
 	JenisKelamin Kelamin
-	Ras          sql.NullString
-	IsVaxinated  sql.NullBool
-	PhotoPath    sql.NullString
+	Ras          string
+	IsVaxinated  bool
+	PhotoPath    string
 }
 
 type PetStatusLog struct {

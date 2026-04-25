@@ -3,9 +3,9 @@
 -- name: CreatePets :one
 
 Insert into pets(
-    ID,user_id,nama,Jenis,age,created_at
+    ID,user_id,nama,Jenis,age,created_at,catatan,berat,jenis_kelamin,ras,is_vaxinated,photo_path
 ) values (
-    $1,$2,$3,$4,$5,$6
+    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
     )
 RETURNING *;
 
@@ -27,7 +27,7 @@ OFFSET $1 LIMIT $2 ;
 DELETE from pets where ID = $1 and user_id = $2;
 
 -- name: UpdatePets :one
-update pets set nama = $1, jenis = $2, age = $3, created_at = $4 where ID = $5 and user_id = $6
+update pets set nama = $1, jenis = $2, age = $3,catatan = $4,berat =$5,jenis_kelamin =$6,ras=$7,is_vaxinated = $8,photo_path = $9 where ID = $10 and user_id = $11
 RETURNING *;
 
 -- name: GetPetsByIDUser :one

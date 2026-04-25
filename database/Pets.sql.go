@@ -15,20 +15,26 @@ import (
 const createPets = `-- name: CreatePets :one
 
 Insert into pets(
-    ID,user_id,nama,Jenis,age,created_at
+    ID,user_id,nama,Jenis,age,created_at,catatan,berat,jenis_kelamin,ras,is_vaxinated,photo_path
 ) values (
-    $1,$2,$3,$4,$5,$6
+    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
     )
 RETURNING id, user_id, nama, jenis, age, created_at, catatan, berat, jenis_kelamin, ras, is_vaxinated, photo_path
 `
 
 type CreatePetsParams struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	Nama      string
-	Jenis     string
-	Age       sql.NullInt32
-	CreatedAt sql.NullTime
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	Nama         string
+	Jenis        string
+	Age          sql.NullInt32
+	CreatedAt    sql.NullTime
+	Catatan      string
+	Berat        string
+	JenisKelamin Kelamin
+	Ras          string
+	IsVaxinated  bool
+	PhotoPath    string
 }
 
 func (q *Queries) CreatePets(ctx context.Context, arg CreatePetsParams) (Pet, error) {
@@ -39,6 +45,12 @@ func (q *Queries) CreatePets(ctx context.Context, arg CreatePetsParams) (Pet, er
 		arg.Jenis,
 		arg.Age,
 		arg.CreatedAt,
+		arg.Catatan,
+		arg.Berat,
+		arg.JenisKelamin,
+		arg.Ras,
+		arg.IsVaxinated,
+		arg.PhotoPath,
 	)
 	var i Pet
 	err := row.Scan(
@@ -95,12 +107,12 @@ type GetPetsDetailRow struct {
 	Jenis        string
 	Age          sql.NullInt32
 	ID           uuid.UUID
-	Catatan      sql.NullString
-	Berat        sql.NullString
+	Catatan      string
+	Berat        string
 	JenisKelamin Kelamin
-	Ras          sql.NullString
-	IsVaxinated  sql.NullBool
-	PhotoPath    sql.NullString
+	Ras          string
+	IsVaxinated  bool
+	PhotoPath    string
 	Nama_2       string
 }
 
@@ -209,17 +221,22 @@ func (q *Queries) GetPetsListUser(ctx context.Context, arg GetPetsListUserParams
 }
 
 const updatePets = `-- name: UpdatePets :one
-update pets set nama = $1, jenis = $2, age = $3, created_at = $4 where ID = $5 and user_id = $6
+update pets set nama = $1, jenis = $2, age = $3,catatan = $4,berat =$5,jenis_kelamin =$6,ras=$7,is_vaxinated = $8,photo_path = $9 where ID = $10 and user_id = $11
 RETURNING id, user_id, nama, jenis, age, created_at, catatan, berat, jenis_kelamin, ras, is_vaxinated, photo_path
 `
 
 type UpdatePetsParams struct {
-	Nama      string
-	Jenis     string
-	Age       sql.NullInt32
-	CreatedAt sql.NullTime
-	ID        uuid.UUID
-	UserID    uuid.UUID
+	Nama         string
+	Jenis        string
+	Age          sql.NullInt32
+	Catatan      string
+	Berat        string
+	JenisKelamin Kelamin
+	Ras          string
+	IsVaxinated  bool
+	PhotoPath    string
+	ID           uuid.UUID
+	UserID       uuid.UUID
 }
 
 func (q *Queries) UpdatePets(ctx context.Context, arg UpdatePetsParams) (Pet, error) {
@@ -227,7 +244,12 @@ func (q *Queries) UpdatePets(ctx context.Context, arg UpdatePetsParams) (Pet, er
 		arg.Nama,
 		arg.Jenis,
 		arg.Age,
-		arg.CreatedAt,
+		arg.Catatan,
+		arg.Berat,
+		arg.JenisKelamin,
+		arg.Ras,
+		arg.IsVaxinated,
+		arg.PhotoPath,
 		arg.ID,
 		arg.UserID,
 	)
