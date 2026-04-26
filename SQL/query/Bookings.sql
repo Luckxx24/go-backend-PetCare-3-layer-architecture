@@ -40,4 +40,8 @@ RETURNING *;
 
 SELECT ID,pet_id ,user_id,status FROM bookings where ID = $1 and user_id=$2;
 
+-- name: GetBookingByIDmany :many
+
+SELECT ID,pet_id ,user_id,status FROM bookings where ID = $1 and user_id=$2 ORDER by created_at DESC OFFSET $2 LIMIT $3;
+
 

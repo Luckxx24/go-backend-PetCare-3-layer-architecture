@@ -90,7 +90,6 @@ func (app Application) CreatePet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonresponse.ResponSuccess(w, 200, pet)
-	return
 
 }
 
@@ -213,7 +212,6 @@ func (app Application) GetPetslistUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonresponse.ResponSuccess(w, 200, pet)
-	return
 
 }
 
@@ -257,7 +255,6 @@ func (app Application) GetPetsadmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonresponse.ResponSuccess(w, 200, pets)
-	return
 
 }
 
@@ -336,7 +333,6 @@ func (app *Application) GetPetsDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonresponse.ResponSuccess(w, 200, pets)
-	return
 
 }
 

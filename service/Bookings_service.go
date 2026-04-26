@@ -92,30 +92,30 @@ func (S *Services) GetBookingByStatus(ctx context.Context, status string, Page, 
 	return Bookings, nil
 }
 
-func (S *Services) DeleteBooking(ctx context.Context, ID uuid.UUID) (bool, error) {
+func (S *Services) DeleteBooking(ctx context.Context, ID uuid.UUID) error {
 	role, ok := middleware.GetRoleFromContext(ctx)
 
 	okey := IsValidRole(role)
 
 	if !okey {
-		return false, errors.New("role tidak valid masukan role valid")
+		return errors.New("role tidak valid masukan role valid")
 	}
 
 	if !ok {
-		return false, errors.New("role tidak ditemukan di dalam context")
+		return errors.New("role tidak ditemukan di dalam context")
 	}
 
 	if role == "User" {
-		return false, errors.New("anda tidak memiliki akses ini")
+		return errors.New("anda tidak memiliki akses ini")
 	}
 
 	err := S.StoreDB.Bookings.DeleteBooking(ctx, ID)
 
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
 func (S *Services) UpdateBookings(ctx context.Context, status string, ID uuid.UUID, startDate, endDate time.Time) (database.Booking, error) {
