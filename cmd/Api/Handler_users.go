@@ -70,7 +70,7 @@ func (app *Application) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	decode := json.NewDecoder(r.Body)
 	params := param{}
-	err := decode.Decode(params)
+	err := decode.Decode(&params)
 
 	if err != nil {
 		jsonresponse.RespondWithBadRequest(w, "gagal men-decode params")

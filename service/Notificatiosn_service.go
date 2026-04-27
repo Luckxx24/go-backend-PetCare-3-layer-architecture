@@ -48,23 +48,23 @@ func (S *Services) GetNotificicationsHistory(ctx context.Context, Page, PageSize
 	return NotifHistory, err
 }
 
-func (S *Services) DeleteNotifications(ctx context.Context, ID uuid.UUID) (bool, error) {
+func (S *Services) DeleteNotifications(ctx context.Context, ID uuid.UUID) error {
 	role, okey := middleware.GetRoleFromContext(ctx)
 
 	if !okey {
-		return false, errors.New("role tidak valid")
+		return errors.New("role tidak valid")
 	}
 
 	if role == "User" {
-		return false, errors.New("anda tidak memiliki hak akses ini")
+		return errors.New("anda tidak memiliki hak akses ini")
 	}
 
 	err := S.StoreDB.Notifications.DeleteNotifications(ctx, ID)
 
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 func (S *Services) UpdateNotification(ctx context.Context, title, message string, id uuid.UUID) (database.Notification, error) {

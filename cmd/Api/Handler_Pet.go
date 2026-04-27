@@ -369,7 +369,7 @@ func (app *Application) DeletePets(w http.ResponseWriter, r *http.Request) {
 		IDuserstr, okey := middleware.GetIDFromContext(r.Context())
 
 		if !okey {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan id dari context"))
+			jsonresponse.RespondWithBadRequest(w, "gagal mendapatkan id dari context")
 			return
 		}
 
