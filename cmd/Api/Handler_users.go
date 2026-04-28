@@ -12,6 +12,34 @@ import (
 	"github.com/google/uuid"
 )
 
+func HelperPage(r *http.Request) (int, int, error) {
+	pagestr := r.URL.Query().Get("page")
+	pagesizestr := r.URL.Query().Get("pagesize")
+
+	Page := 1
+	PageSize := 10
+
+	if pagestr != "" {
+		p, err := strconv.Atoi(pagestr)
+
+		if err != nil && Page > 0 {
+			Page = p
+		}
+
+		return 0, 0, err
+	}
+
+	if pagesizestr != "" {
+		ps, err := strconv.Atoi(pagesizestr)
+
+		if err != nil && PageSize > 0 {
+			PageSize = ps
+		}
+
+		return 0, 0, err
+	}
+	return Page, PageSize, nil
+}
 func (app *Application) CreateUser(w http.ResponseWriter, r *http.Request) {
 	type param struct {
 		Nama     string
@@ -124,26 +152,11 @@ func (app *Application) DeleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) GetListUser(w http.ResponseWriter, r *http.Request) {
-	pagestr := r.URL.Query().Get("page")
-	pagesizestr := r.URL.Query().Get("pagesize")
 
-	Page := 1
-	PageSize := 10
+	Page, PageSize, err := HelperPage(r)
 
-	if pagestr != "" {
-		p, err := strconv.Atoi(pagestr)
-
-		if err != nil && Page > 0 {
-			Page = p
-		}
-	}
-
-	if pagestr != "" {
-		ps, err := strconv.Atoi(pagesizestr)
-
-		if err != nil && ps > 0 {
-			PageSize = ps
-		}
+	if err != nil {
+		jsonresponse.RespondWithNotfound(w, fmt.Sprintf("gagal mendapatkan data page %v", err))
 	}
 
 	User, erro := app.Service.ListsUserID(r.Context(), Page, PageSize)

@@ -99,6 +99,21 @@ func (app Application) UpdateNotification(w http.ResponseWriter, r *http.Request
 	jsonresponse.ResponSuccess(w, 200, UpdatedNotifications)
 }
 
-func (app Application) GetNotification(w http.ResponseWriter, r *http.Request) {
-	app.Service.Ge
+func (app Application) GetNotificicationsHistory(w http.ResponseWriter, r *http.Request) {
+
+	Page, PageSize, err := HelperPage(r)
+
+	if err != nil {
+		jsonresponse.RespondWithNotfound(w, fmt.Sprintf("gagal mendapatkan data page %v", err))
+		return
+	}
+
+	NOtifications, erro := app.Service.GetNotificicationsHistory(r.Context(), int32(Page), int32(PageSize))
+
+	if erro != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan Notifications %v", erro))
+		return
+	}
+
+	jsonresponse.ResponSuccess(w, 200, NOtifications)
 }
