@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func Helperrole(r *http.Request) (uuid.UUID, error) {
+func HelperroleGetID(r *http.Request) (uuid.UUID, error) {
 
 	role, ok := middleware.GetRoleFromContext(r.Context())
 
@@ -54,6 +54,21 @@ func Helperrole(r *http.Request) (uuid.UUID, error) {
 	return UserID, nil
 }
 
+func HelperIDBookings(r *http.Request) (uuid.UUID, error) {
+	BookIDstr := chi.URLParam(r, "id_booking")
+
+	if BookIDstr == "" {
+		return uuid.Nil, errors.New("Not Fund")
+	}
+
+	BooKID, erro := uuid.Parse(BookIDstr)
+
+	if erro != nil {
+		return uuid.Nil, erro
+	}
+	return BooKID, nil
+}
+
 type params struct {
 	status     string
 	start_date time.Time
@@ -84,7 +99,7 @@ func (app Application) CreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id_user, errr := Helperrole(r)
+	id_user, errr := HelperroleGetID(r)
 
 	if errr != nil {
 		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal authentikasi role %v", errr))
@@ -162,24 +177,21 @@ func (app Application) UpdateBookings(w http.ResponseWriter, r *http.Request) {
 		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendecode param %v", erro))
 		return
 	}
-	IDuser, errr := Helperrole(r)
+	IDuser, errr := HelperroleGetID(r)
 
 	if errr != nil {
 		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan pet id %v", errr))
 		return
 	}
 
-	BookIDstr := chi.URLParam(r, "id_booking")
+	BookID, erros := HelperIDBookings(r)
 
-	if BookIDstr == "" {
-		jsonresponse.RespondWithBadRequest(w, "id tidak ditemukan di url param")
-		return
+	if erros != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatka ID Booking %v", erros))
 	}
 
-	BooKID, erro := uuid.Parse(BookIDstr)
-
 	booking, errs := app.Service.StoreDB.Bookings.GetBookingByUserID(r.Context(), database.GetBookingByUserIDParams{
-		ID:     BooKID,
+		ID:     BookID,
 		UserID: IDuser,
 	})
 
@@ -200,16 +212,11 @@ func (app Application) UpdateBookings(w http.ResponseWriter, r *http.Request) {
 
 func (app Application) DeleteBooking(w http.ResponseWriter, r *http.Request) {
 
-	IDstr := chi.URLParam(r, "id_booking")
+	ID, errs := HelperIDBookings(r)
 
-	if IDstr == "" {
-		jsonresponse.RespondWithNotfound(w, "gagal menemukan id di url")
+	if errs != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan ID Bookings %v", errs))
 		return
-	}
-	ID, erro := uuid.Parse(IDstr)
-
-	if erro != nil {
-		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal men parse id %v", erro))
 	}
 	err := app.Service.DeleteBooking(r.Context(), ID)
 

@@ -54,7 +54,7 @@ func (app Application) CreateNotifications(w http.ResponseWriter, r *http.Reques
 
 func (app Application) DeleteNofications(w http.ResponseWriter, r *http.Request) {
 
-	UserID, erro := Helperrole(r)
+	UserID, erro := HelperroleGetID(r)
 
 	if erro != nil {
 		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mengambil id user dari url %v", erro))

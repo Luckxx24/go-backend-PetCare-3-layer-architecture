@@ -19,7 +19,7 @@ func IsValidstatspsl(r string) bool {
 	return false
 }
 
-func (S *Services) CreatePetlOG(ctx context.Context, status, photo_path, note string, ID, id_booking uuid.UUID) (database.PetStatusLog, error) {
+func (S *Services) CreatePetlOG(ctx context.Context, status, photo_path, note string, IDUser, id_booking uuid.UUID) (database.PetStatusLog, error) {
 	role, okey := middleware.GetRoleFromContext(ctx)
 	if !okey {
 		return database.PetStatusLog{}, errors.New("role tidak ditemukan di dalam context")
@@ -49,7 +49,7 @@ func (S *Services) CreatePetlOG(ctx context.Context, status, photo_path, note st
 
 	bookings, err := S.StoreDB.Bookings.GetBookingByUserID(ctx, database.GetBookingByUserIDParams{
 		ID:     id_booking,
-		UserID: ID,
+		UserID: IDUser,
 	})
 
 	if bookings.Status == "PENDING" {
@@ -75,7 +75,7 @@ func (S *Services) CreatePetlOG(ctx context.Context, status, photo_path, note st
 		Status:     database.Conds(status),
 		Note:       notes,
 		PhotoPath:  photo,
-		CreatedBy:  ID,
+		CreatedBy:  IDUser,
 		CreatedAt:  time.Now(),
 		EditedAt:   time.Now(),
 	})
@@ -85,7 +85,7 @@ func (S *Services) CreatePetlOG(ctx context.Context, status, photo_path, note st
 	return PetLog, nil
 }
 
-func (S *Services) GetAllLog(ctx context.Context, Page, PageSize int) ([]database.GetAllLogRow, error) {
+func (S *Services) GetAllPetLog(ctx context.Context, Page, PageSize int) ([]database.GetAllLogRow, error) {
 	role, okey := middleware.GetRoleFromContext(ctx)
 	if !okey {
 		return []database.GetAllLogRow{}, errors.New("role tidak ditemukan di dalam context")
@@ -120,7 +120,7 @@ func (S *Services) GetAllLog(ctx context.Context, Page, PageSize int) ([]databas
 
 }
 
-func (S *Services) GetlogUser(ctx context.Context, id_bookings uuid.UUID) (database.GetLogRow, error) {
+func (S *Services) GetpetlogUser(ctx context.Context, id_bookings uuid.UUID) (database.GetLogRow, error) {
 	UsersIDstr, oke := middleware.GetIDFromContext(ctx)
 
 	if !oke {
@@ -150,7 +150,7 @@ func (S *Services) GetlogUser(ctx context.Context, id_bookings uuid.UUID) (datab
 	return LogUser, nil
 }
 
-func (S *Services) UpdateLog(ctx context.Context, ID, id_bookings, id_userp uuid.UUID, status, note, path string) (database.PetStatusLog, error) {
+func (S *Services) UpdateLogpet(ctx context.Context, ID, id_bookings, id_userp uuid.UUID, status, note, path string) (database.PetStatusLog, error) {
 	role, okey := middleware.GetRoleFromContext(ctx)
 	if !okey {
 		return database.PetStatusLog{}, errors.New("role tidak ditemukan di dalam context")
@@ -216,21 +216,21 @@ func (S *Services) UpdateLog(ctx context.Context, ID, id_bookings, id_userp uuid
 	return UpdateLOg, nil
 }
 
-func (S *Services) DeleteLogPet(ctx context.Context, ID uuid.UUID) (bool, error) {
+func (S *Services) DeleteLogPet(ctx context.Context, ID uuid.UUID) error {
 	role, _ := middleware.GetRoleFromContext(ctx)
 
 	if ok := IsValidRole(role); !ok {
-		return false, errors.New("masukan enum role yang valid")
+		return errors.New("masukan enum role yang valid")
 	}
 
 	if role == "Users" {
-		return false, errors.New("anda tidak memiliki akses")
+		return errors.New("anda tidak memiliki akses")
 	}
 	err := S.StoreDB.Pet_Status_Log.DeleteLog(ctx, ID)
 
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
