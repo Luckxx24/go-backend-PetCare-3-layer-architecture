@@ -7,7 +7,6 @@ import (
 	"pet-care/cmd/jsonresponse"
 	"pet-care/database"
 	"pet-care/internal/middleware"
-	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -37,41 +36,12 @@ func (app Application) CreatePet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	role, ok := middleware.GetRoleFromContext(r.Context())
-
-	if !ok {
-		jsonresponse.RespondWithBadRequest(w, "gagal mengambil role dari context")
+	userID, errs := HelperroleGetID(r)
+	if errs != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan ID dari user %v", errs))
 		return
 	}
 
-	var userID uuid.UUID
-
-	if role == "User" {
-		UsersIDparse, ok := middleware.GetIDFromContext(r.Context())
-		if !ok {
-			jsonresponse.RespondWithBadRequest(w, "gagal mengambil ID dari context")
-			return
-		}
-		userIDI, errs := uuid.Parse(UsersIDparse)
-
-		if errs != nil {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal menparse id dari context %v", errs))
-			return
-		}
-
-		userID = userIDI
-	} else {
-		UserIDstr := chi.URLParam(r, "iduser")
-
-		userIDI, errr := uuid.Parse(UserIDstr)
-
-		if errr != nil {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal menparse id dari context %v", errr))
-			return
-		}
-
-		userID = userIDI
-	}
 	pet, err := app.Service.CreatePets(r.Context(),
 		params.Nama,
 		params.Jenis,
@@ -103,41 +73,11 @@ func (app Application) UpdatePets(w http.ResponseWriter, r *http.Request) {
 	if erro != nil {
 		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendecode data %v", erro))
 	}
-	role, ok := middleware.GetRoleFromContext(r.Context())
 
-	if !ok {
-		jsonresponse.RespondWithBadRequest(w, "gagal mendapatkan role dari context")
-	}
-
-	var UserID uuid.UUID
-
-	if role == "User" {
-		Useridstr, ok := middleware.GetIDFromContext(r.Context())
-		useridpars, errr := uuid.Parse(Useridstr)
-
-		if errr != nil {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal parse ID %v", errr))
-			return
-		}
-
-		if !ok {
-			jsonresponse.RespondWithBadRequest(w, "gagal mendapatkan id dari context")
-			return
-		}
-		UserID = useridpars
-	}
-
-	if role == "Staff" || role == "Admin" {
-		Useridstr := chi.URLParam(r, "iduser")
-
-		UserIDpars, erro := uuid.Parse(Useridstr)
-
-		if erro != nil {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal parse ID %v", erro))
-			return
-		}
-
-		UserID = UserIDpars
+	UserID, errs := HelperroleGetID(r)
+	if errs != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan ID dari user %v", errs))
+		return
 	}
 	idpetsstr := chi.URLParam(r, "id_pet")
 
@@ -173,35 +113,11 @@ func (app Application) UpdatePets(w http.ResponseWriter, r *http.Request) {
 
 func (app Application) GetPetslistUser(w http.ResponseWriter, r *http.Request) {
 
-	pagestr := r.URL.Query().Get("page")
-	pagesizestr := r.URL.Query().Get("pagesize")
+	page, pagesize, eros := HelperPage(r)
 
-	var page int
-	var pagesize int
-
-	page = 1
-	pagesize = 10
-
-	if pagestr != "" {
-		p, erro := strconv.Atoi(pagestr)
-
-		if erro != nil || p < 0 {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("error ketika men parse page %v", erro))
-			return
-		}
-
-		page = p
-	}
-
-	if pagesizestr != "" {
-		p, errr := strconv.Atoi(pagesizestr)
-
-		if errr != nil || p < 0 {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("error ketika men parse pagesize %v", errr))
-			return
-		}
-
-		pagesize = p
+	if eros != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan nomor page %v", eros))
+		return
 	}
 
 	pet, err := app.Service.GetPetUser(r.Context(), page, pagesize)
@@ -217,35 +133,11 @@ func (app Application) GetPetslistUser(w http.ResponseWriter, r *http.Request) {
 
 func (app Application) GetPetsadmin(w http.ResponseWriter, r *http.Request) {
 
-	pagestr := r.URL.Query().Get("page")
-	pagesizestr := r.URL.Query().Get("pagesize")
+	page, pagesize, erros := HelperPage(r)
 
-	var page int
-	var pagesize int
-
-	page = 1
-	pagesize = 10
-
-	if pagestr != "" {
-		p, erro := strconv.Atoi(pagestr)
-
-		if erro != nil || p < 0 {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("error ketika men parse page %v", erro))
-			return
-		}
-
-		page = p
-	}
-
-	if pagesizestr != "" {
-		p, errr := strconv.Atoi(pagesizestr)
-
-		if errr != nil || p < 0 {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("error ketika men parse pagesize %v", errr))
-			return
-		}
-
-		pagesize = p
+	if erros != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan nomor page %v", erros))
+		return
 	}
 
 	pets, erro := app.Service.GetPetsStaff(r.Context(), page, pagesize)
@@ -346,42 +238,11 @@ func (app *Application) DeletePets(w http.ResponseWriter, r *http.Request) {
 
 	var UserID uuid.UUID
 
-	if role == "Staff" || role == "Admin" {
-		idusertstr := chi.URLParam(r, "user_id")
+	UserID, errs := HelperroleGetID(r)
 
-		if idusertstr == "" {
-			jsonresponse.RespondWithBadRequest(w, "gagal mendapatkan id dari url param")
-			return
-		}
-
-		id, err := uuid.Parse(idusertstr)
-
-		if err != nil {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal men-parse UserID %v", err))
-			return
-		}
-
-		UserID = id
-
-	}
-
-	if role == "User" {
-		IDuserstr, okey := middleware.GetIDFromContext(r.Context())
-
-		if !okey {
-			jsonresponse.RespondWithBadRequest(w, "gagal mendapatkan id dari context")
-			return
-		}
-
-		id, errors := uuid.Parse(IDuserstr)
-
-		if errors != nil {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal men-parse id %v", errors))
-			return
-		}
-
-		UserID = id
-
+	if errs != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan id user %v", errs))
+		return
 	}
 
 	petsidstr := chi.URLParam(r, "pets_id")

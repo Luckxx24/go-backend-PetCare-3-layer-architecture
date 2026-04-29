@@ -7,52 +7,11 @@ import (
 	"net/http"
 	"pet-care/cmd/jsonresponse"
 	"pet-care/database"
-	"pet-care/internal/middleware"
-	"strconv"
 	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 )
-
-func HelperroleGetID(r *http.Request) (uuid.UUID, error) {
-
-	role, ok := middleware.GetRoleFromContext(r.Context())
-
-	if !ok {
-		return uuid.Nil, errors.New("gagal mendapatkan role dari context")
-	}
-
-	var UserID uuid.UUID
-
-	if role == "User" {
-		Useridstr, ok := middleware.GetIDFromContext(r.Context())
-		useridpars, errr := uuid.Parse(Useridstr)
-
-		if errr != nil {
-
-			return uuid.Nil, errr
-		}
-
-		if !ok {
-			return uuid.Nil, errors.New("gagal mendapatkan id dari context")
-		}
-		UserID = useridpars
-	}
-
-	if role == "Staff" || role == "Admin" {
-		Useridstr := chi.URLParam(r, "iduser")
-
-		UserIDpars, erro := uuid.Parse(Useridstr)
-
-		if erro != nil {
-			return uuid.Nil, erro
-		}
-
-		UserID = UserIDpars
-	}
-	return UserID, nil
-}
 
 func HelperIDBookings(r *http.Request) (uuid.UUID, error) {
 	BookIDstr := chi.URLParam(r, "id_booking")
@@ -128,41 +87,18 @@ func (app Application) GetBookingmany(w http.ResponseWriter, r *http.Request) {
 		jsonresponse.RespondWithBadRequest(w, "gagal mendecode parasm")
 		return
 	}
-	pagestr := r.URL.Query().Get("page")
-	pagesizestr := r.URL.Query().Get("pagesize")
+	page, pagesize, errs := HelperPage(r)
 
-	var page int
-	var pagesize int
-
-	page = 1
-	pagesize = 10
-
-	if pagestr != "" {
-		p, erro := strconv.Atoi(pagestr)
-
-		if erro != nil || p < 0 {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("error ketika men parse page %v", erro))
-			return
-		}
-
-		page = p
-	}
-
-	if pagesizestr != "" {
-		p, errr := strconv.Atoi(pagesizestr)
-
-		if errr != nil || p < 0 {
-			jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("error ketika men parse pagesize %v", errr))
-			return
-		}
-
-		pagesize = p
+	if errs != nil {
+		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan infor page %v", errs))
+		return
 	}
 
 	pets, err := app.Service.GetBookingByStatus(r.Context(), params.Status, page, pagesize)
 
 	if err != nil {
 		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan booking %v", err))
+		return
 	}
 
 	jsonresponse.ResponSuccess(w, 200, pets)
