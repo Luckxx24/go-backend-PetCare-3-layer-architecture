@@ -144,17 +144,17 @@ func (S *Services) GetChatHistory(ctx context.Context, id_booking uuid.UUID, Pag
 	return ChatHistory, nil
 }
 
-func (S *Services) DeleteMessage(ctx context.Context, ID uuid.UUID) (bool, error) {
+func (S *Services) DeleteMessage(ctx context.Context, ID uuid.UUID) error {
 
 	id_USERstr, ok := middleware.GetIDFromContext(ctx)
 
 	if !ok {
-		return false, errors.New("gagal mengambil id dari context")
+		return errors.New("gagal mengambil id dari context")
 	}
 	Users_ID, err := uuid.Parse(id_USERstr)
 
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	erro := S.StoreDB.Message.DeleteMessage(ctx, database.DeleteMessageParams{
@@ -163,10 +163,10 @@ func (S *Services) DeleteMessage(ctx context.Context, ID uuid.UUID) (bool, error
 	})
 
 	if erro != nil {
-		return false, erro
+		return erro
 	}
 
-	return true, nil
+	return nil
 
 }
 

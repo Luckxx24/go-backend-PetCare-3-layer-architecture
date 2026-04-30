@@ -229,15 +229,6 @@ func (app *Application) GetPetsDetail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) DeletePets(w http.ResponseWriter, r *http.Request) {
-	role, oke := middleware.GetRoleFromContext(r.Context())
-
-	if !oke {
-		jsonresponse.RespondWithBadRequest(w, "gagal mendapatkan role dari context")
-		return
-	}
-
-	var UserID uuid.UUID
-
 	UserID, errs := HelperroleGetID(r)
 
 	if errs != nil {
