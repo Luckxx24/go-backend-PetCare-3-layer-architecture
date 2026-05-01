@@ -15,3 +15,5 @@ require github.com/golang-jwt/jwt/v4 v4.5.2
 require golang.org/x/crypto v0.50.0
 
 require github.com/lib/pq v1.12.3
+
+require github.com/gorilla/websocket v1.5.3 // indirect

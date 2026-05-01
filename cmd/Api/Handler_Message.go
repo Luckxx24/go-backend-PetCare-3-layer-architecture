@@ -31,7 +31,7 @@ func (app Application) GetChatInbox(w http.ResponseWriter, r *http.Request) {
 	Useridstr, okey := middleware.GetIDFromContext(r.Context())
 
 	if !okey {
-		jsonresponse.RespondWithBadRequest(w, fmt.Sprintf("gagal mendapatkan ID %v", erros))
+		jsonresponse.RespondWithBadRequest(w, "gagal mendapatkan ID")
 		return
 	}
 
