@@ -7,28 +7,23 @@ import (
 	"github.com/google/uuid"
 )
 
-
 type Room struct {
-	clients map[*Client]bool 
-	mu      sync.RWMutex    
+	clients map[*Client]bool
+	mu      sync.RWMutex
 }
 
-
 type Hub struct {
-	rooms      map[uuid.UUID]*Room 
-	Register   chan *Client        
-	Unregister chan *Client        
-	Broadcast  chan BroadcastMsg   
+	rooms      map[uuid.UUID]*Room
+	Register   chan *Client
+	Unregister chan *Client
+	Broadcast  chan BroadcastMsg
 	mu         sync.RWMutex
 }
 
-
-/
 type BroadcastMsg struct {
-	RoomID  uuid.UUID  
-	Message WsResponse 
+	RoomID  uuid.UUID
+	Message WsResponse
 }
-
 
 func NewHub() *Hub {
 	return &Hub{
@@ -39,7 +34,6 @@ func NewHub() *Hub {
 	}
 }
 
-
 func (h *Hub) Run() {
 	for {
 		select {
@@ -47,7 +41,6 @@ func (h *Hub) Run() {
 		case client := <-h.Register:
 			h.mu.Lock()
 
-			
 			if _, exists := h.rooms[client.BookingID]; !exists {
 				h.rooms[client.BookingID] = &Room{
 					clients: make(map[*Client]bool),
@@ -59,16 +52,14 @@ func (h *Hub) Run() {
 
 			log.Printf("[HUB] Client %v bergabung ke room %v", client.UserID, client.BookingID)
 
-		
 		case client := <-h.Unregister:
 			h.mu.Lock()
 
 			if room, exists := h.rooms[client.BookingID]; exists {
-				
-				delete(room.clients, client)
-				close(client.Send) 
 
-				
+				delete(room.clients, client)
+				close(client.Send)
+
 				if len(room.clients) == 0 {
 					delete(h.rooms, client.BookingID)
 					log.Printf("[HUB] Room %v dihapus (kosong)", client.BookingID)
@@ -78,7 +69,6 @@ func (h *Hub) Run() {
 			h.mu.Unlock()
 			log.Printf("[HUB] Client %v keluar dari room %v", client.UserID, client.BookingID)
 
-		
 		case msg := <-h.Broadcast:
 			h.mu.RLock()
 
@@ -92,10 +82,9 @@ func (h *Hub) Run() {
 			for client := range room.clients {
 				select {
 				case client.Send <- msg.Message:
-					
+
 				default:
-				
-					
+
 					close(client.Send)
 					delete(room.clients, client)
 					log.Printf("[HUB] Client %v dihapus paksa (buffer penuh)", client.UserID)
