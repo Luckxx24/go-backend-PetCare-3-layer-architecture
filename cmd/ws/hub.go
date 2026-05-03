@@ -7,91 +7,101 @@ import (
 	"github.com/google/uuid"
 )
 
-type Room struct {
-	clients map[*Client]bool
-	mu      sync.RWMutex
+type ChatRoom struct {
+	activeUsers map[*UserConnection]bool
+	lock        sync.RWMutex
 }
 
-type Hub struct {
-	rooms      map[uuid.UUID]*Room
-	Register   chan *Client
-	Unregister chan *Client
-	Broadcast  chan BroadcastMsg
-	mu         sync.RWMutex
+type MessageHub struct {
+	chatRooms  map[uuid.UUID]*ChatRoom
+	UserJoined chan *UserConnection
+	UserLeft   chan *UserConnection
+	NewMessage chan IncomingBroadcast
+	lock       sync.RWMutex
 }
 
-type BroadcastMsg struct {
-	RoomID  uuid.UUID
-	Message WsResponse
+type IncomingBroadcast struct {
+	TargetRoomID uuid.UUID
+	Payload      WsResponse
 }
 
-func NewHub() *Hub {
-	return &Hub{
-		rooms:      make(map[uuid.UUID]*Room),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
-		Broadcast:  make(chan BroadcastMsg),
+func NewMessageHub() *MessageHub {
+	return &MessageHub{
+		chatRooms:  make(map[uuid.UUID]*ChatRoom),
+		UserJoined: make(chan *UserConnection),
+		UserLeft:   make(chan *UserConnection),
+		NewMessage: make(chan IncomingBroadcast),
 	}
 }
 
-func (h *Hub) Run() {
+func (hub *MessageHub) Run() {
 	for {
 		select {
 
-		case client := <-h.Register:
-			h.mu.Lock()
+		case newUser := <-hub.UserJoined:
+			hub.lock.Lock()
 
-			if _, exists := h.rooms[client.BookingID]; !exists {
-				h.rooms[client.BookingID] = &Room{
-					clients: make(map[*Client]bool),
+			roomBelumAda := hub.chatRooms[newUser.BookingID] == nil
+			if roomBelumAda {
+				hub.chatRooms[newUser.BookingID] = &ChatRoom{
+					activeUsers: make(map[*UserConnection]bool),
 				}
 			}
 
-			h.rooms[client.BookingID].clients[client] = true
-			h.mu.Unlock()
+			hub.chatRooms[newUser.BookingID].activeUsers[newUser] = true
 
-			log.Printf("[HUB] Client %v bergabung ke room %v", client.UserID, client.BookingID)
+			hub.lock.Unlock()
+			log.Printf("[HUB] Pengguna %v bergabung ke room %v", newUser.UserID, newUser.BookingID)
 
-		case client := <-h.Unregister:
-			h.mu.Lock()
+		case disconnectedUser := <-hub.UserLeft:
+			hub.lock.Lock()
 
-			if room, exists := h.rooms[client.BookingID]; exists {
+			room, roomDitemukan := hub.chatRooms[disconnectedUser.BookingID]
+			if roomDitemukan {
 
-				delete(room.clients, client)
-				close(client.Send)
+				delete(room.activeUsers, disconnectedUser)
 
-				if len(room.clients) == 0 {
-					delete(h.rooms, client.BookingID)
-					log.Printf("[HUB] Room %v dihapus (kosong)", client.BookingID)
+				close(disconnectedUser.Send)
+
+				roomSudahKosong := len(room.activeUsers) == 0
+				if roomSudahKosong {
+					delete(hub.chatRooms, disconnectedUser.BookingID)
+					log.Printf("[HUB] Room %v dihapus karena sudah kosong", disconnectedUser.BookingID)
 				}
 			}
 
-			h.mu.Unlock()
-			log.Printf("[HUB] Client %v keluar dari room %v", client.UserID, client.BookingID)
+			hub.lock.Unlock()
+			log.Printf("[HUB] Pengguna %v keluar dari room %v", disconnectedUser.UserID, disconnectedUser.BookingID)
 
-		case msg := <-h.Broadcast:
-			h.mu.RLock()
+		case broadcast := <-hub.NewMessage:
+			hub.lock.RLock()
 
-			room, exists := h.rooms[msg.RoomID]
-
-			if !exists {
-				h.mu.RUnlock()
+			targetRoom, roomDitemukan := hub.chatRooms[broadcast.TargetRoomID]
+			if !roomDitemukan {
+				hub.lock.RUnlock()
 				continue
 			}
 
-			for client := range room.clients {
-				select {
-				case client.Send <- msg.Message:
+			for user := range targetRoom.activeUsers {
+				pesanTerkirim := kirimPesanKeUser(user, broadcast.Payload)
+				if !pesanTerkirim {
 
-				default:
-
-					close(client.Send)
-					delete(room.clients, client)
-					log.Printf("[HUB] Client %v dihapus paksa (buffer penuh)", client.UserID)
+					close(user.Send)
+					delete(targetRoom.activeUsers, user)
+					log.Printf("[HUB] Pengguna %v dihapus paksa (buffer penuh)", user.UserID)
 				}
 			}
 
-			h.mu.RUnlock()
+			hub.lock.RUnlock()
 		}
+	}
+}
+
+func kirimPesanKeUser(user *UserConnection, pesan WsResponse) bool {
+	select {
+	case user.Send <- pesan:
+		return true
+	default:
+		return false
 	}
 }

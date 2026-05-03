@@ -10,21 +10,21 @@ import (
 )
 
 const (
-	writeWait = 10 * time.Second
+	batasWaktuMenulis = 10 * time.Second
 
-	pongWait = 60 * time.Second
+	batasWaktuPong = 60 * time.Second
 
-	pingPeriod = (pongWait * 9) / 10
+	intervalPing = (batasWaktuPong * 9) / 10
 
-	maxMessageSize = 512
+	ukuranMaksimalPesan = 512
 )
 
-type Client struct {
+type UserConnection struct {
 	UserID    uuid.UUID
 	BookingID uuid.UUID
 	Conn      *websocket.Conn
 	Send      chan WsResponse
-	Hub       *Hub
+	Hub       *MessageHub
 	Service   MessageServiceIface
 }
 
@@ -32,119 +32,118 @@ type MessageServiceIface interface {
 	CreateMessageWS(userID, receiverID, bookingID uuid.UUID, message string) error
 }
 
-func (c *Client) ReadPump() {
-
+func (u *UserConnection) TerimaPesan() {
 	defer func() {
-		c.Hub.Unregister <- c
-		c.Conn.Close()
+		u.Hub.UserLeft <- u
+		u.Conn.Close()
 	}()
 
-	c.Conn.SetReadLimit(maxMessageSize)
-	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	u.Conn.SetReadLimit(ukuranMaksimalPesan)
+	u.Conn.SetReadDeadline(time.Now().Add(batasWaktuPong))
 
-	c.Conn.SetPongHandler(func(string) error {
-		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	u.Conn.SetPongHandler(func(string) error {
+		u.Conn.SetReadDeadline(time.Now().Add(batasWaktuPong))
 		return nil
 	})
 
 	for {
-
-		_, rawMsg, err := c.Conn.ReadMessage()
+		_, pesanMentah, err := u.Conn.ReadMessage()
 		if err != nil {
-
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[CLIENT] Error membaca pesan dari %v: %v", c.UserID, err)
+			koneksiDitutupTidakNormal := websocket.IsUnexpectedCloseError(
+				err,
+				websocket.CloseGoingAway,
+				websocket.CloseAbnormalClosure,
+			)
+			if koneksiDitutupTidakNormal {
+				log.Printf("[KONEKSI] Koneksi pengguna %v terputus tidak normal: %v", u.UserID, err)
 			}
 			break
 		}
 
 		var payload WsPayload
-		if err := json.Unmarshal(rawMsg, &payload); err != nil {
-			log.Printf("[CLIENT] Gagal decode payload dari %v: %v", c.UserID, err)
-
-			c.Send <- WsResponse{Error: "format pesan tidak valid"}
+		if err := json.Unmarshal(pesanMentah, &payload); err != nil {
+			log.Printf("[KONEKSI] Format pesan dari pengguna %v tidak valid: %v", u.UserID, err)
+			u.Send <- WsResponse{Error: "format pesan tidak valid"}
 			continue
 		}
 
 		switch payload.Action {
 
 		case "send_message":
-
 			if payload.Message == "" {
-				c.Send <- WsResponse{Error: "pesan tidak boleh kosong"}
+				u.Send <- WsResponse{Error: "pesan tidak boleh kosong"}
 				continue
 			}
 
-			if err := c.Service.CreateMessageWS(c.UserID, payload.ReceiverID, c.BookingID, payload.Message); err != nil {
-				log.Printf("[CLIENT] Gagal simpan pesan: %v", err)
-				c.Send <- WsResponse{Error: "gagal menyimpan pesan"}
+			err := u.Service.CreateMessageWS(u.UserID, payload.ReceiverID, u.BookingID, payload.Message)
+			if err != nil {
+				log.Printf("[KONEKSI] Gagal menyimpan pesan dari pengguna %v: %v", u.UserID, err)
+				u.Send <- WsResponse{Error: "gagal menyimpan pesan"}
 				continue
 			}
 
-			c.Hub.Broadcast <- BroadcastMsg{
-				RoomID: c.BookingID,
-				Message: WsResponse{
-					SenderID:   c.UserID,
+			u.Hub.NewMessage <- IncomingBroadcast{
+				TargetRoomID: u.BookingID,
+				Payload: WsResponse{
+					SenderID:   u.UserID,
 					ReceiverID: payload.ReceiverID,
 					Message:    payload.Message,
-					BookingID:  c.BookingID,
+					BookingID:  u.BookingID,
 				},
 			}
 
 		default:
-			log.Printf("[CLIENT] Action tidak dikenal dari %v: %s", c.UserID, payload.Action)
+			log.Printf("[KONEKSI] Aksi tidak dikenal dari pengguna %v: %s", u.UserID, payload.Action)
 		}
 	}
 }
 
-func (c *Client) WritePump() {
-
-	ticker := time.NewTicker(pingPeriod)
+func (u *UserConnection) KirimPesan() {
+	timerPing := time.NewTicker(intervalPing)
 
 	defer func() {
-		ticker.Stop()
-		c.Conn.Close()
+		timerPing.Stop()
+		u.Conn.Close()
 	}()
 
 	for {
 		select {
-		case message, ok := <-c.Send:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 
-			if !ok {
+		case pesan, saluranMasihTerbuka := <-u.Send:
+			u.Conn.SetWriteDeadline(time.Now().Add(batasWaktuMenulis))
 
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+			if !saluranMasihTerbuka {
+				u.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			w, err := c.Conn.NextWriter(websocket.TextMessage)
+			penulis, err := u.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
 
-			jsonBytes, err := json.Marshal(message)
+			pesanJSON, err := json.Marshal(pesan)
 			if err != nil {
-				log.Printf("[CLIENT] Gagal encode response: %v", err)
+				log.Printf("[KONEKSI] Gagal encode pesan untuk pengguna %v: %v", u.UserID, err)
+				return
+			}
+			penulis.Write(pesanJSON)
+
+			jumlahPesanAntrian := len(u.Send)
+			for i := 0; i < jumlahPesanAntrian; i++ {
+				pesanBerikutnya := <-u.Send
+				pesanBerikutnyaJSON, _ := json.Marshal(pesanBerikutnya)
+				penulis.Write([]byte("\n"))
+				penulis.Write(pesanBerikutnyaJSON)
+			}
+
+			if err := penulis.Close(); err != nil {
 				return
 			}
 
-			w.Write(jsonBytes)
-
-			n := len(c.Send)
-			for i := 0; i < n; i++ {
-				w.Write([]byte("\n"))
-				nextMsg := <-c.Send
-				nextBytes, _ := json.Marshal(nextMsg)
-				w.Write(nextBytes)
-			}
-
-			if err := w.Close(); err != nil {
-				return
-			}
-
-		case <-ticker.C:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+		case <-timerPing.C:
+			u.Conn.SetWriteDeadline(time.Now().Add(batasWaktuMenulis))
+			if err := u.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
 		}
