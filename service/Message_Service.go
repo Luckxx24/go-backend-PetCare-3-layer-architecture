@@ -199,3 +199,25 @@ func (S *Services) UpdateMessageAsRead(ctx context.Context, booking_id uuid.UUID
 
 	return nil
 }
+
+func (s *Services) CreateMessageWS(userID, receiverID, bookingID uuid.UUID, message string) error {
+	message = strings.TrimSpace(message)
+	if message == "" {
+		return nil // abaikan pesan kosong
+	}
+
+	_, err := s.StoreDB.Message.CreateMessage(context.Background(), database.CreateMessageParams{
+		ID:         uuid.New(),
+		BookingsID: bookingID,
+		SenderID:   userID,
+		ReceiverID: receiverID,
+		Message:    message,
+		IsRead:     false,
+		CreatedAt: sql.NullTime{
+			Time:  time.Now(),
+			Valid: true,
+		},
+	})
+
+	return err
+}
