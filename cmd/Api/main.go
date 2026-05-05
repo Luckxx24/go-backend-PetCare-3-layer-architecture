@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"pet-care/cmd/ws"
 	jwt "pet-care/internal/JWT"
 	"pet-care/service"
 	"pet-care/setting/db"
@@ -41,11 +42,16 @@ func main() {
 		TokenUtil: tokenUtil,
 	}
 
+	hub := ws.NewMessageHub()
+
+	go hub.Run()
+
 	app := Application{
 		Config:    cfg,
 		Store:     store,
 		Service:   service,
 		TokenUtil: tokenUtil,
+		Hub:       hub,
 	}
 
 	mux := app.Mount()

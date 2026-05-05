@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"pet-care/internal/middleware"
@@ -76,4 +77,16 @@ func HelperroleGetID(r *http.Request) (uuid.UUID, error) {
 		UserID = UserIDpars
 	}
 	return UserID, nil
+}
+
+func readJSON(r *http.Request, dst any) error {
+	dec := json.NewDecoder(r.Body)
+
+	dec.DisallowUnknownFields()
+
+	if err := dec.Decode(dst); err != nil {
+		return err
+	}
+
+	return nil
 }

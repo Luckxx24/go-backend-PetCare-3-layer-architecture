@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"pet-care/cmd/ws"
 	jwt "pet-care/internal/JWT"
 	"pet-care/service"
 	Store "pet-care/store"
@@ -30,6 +31,7 @@ type Application struct {
 	Store     Store.Storage
 	Service   service.Services
 	TokenUtil jwt.TokenUtil
+	Hub       *ws.MessageHub
 }
 
 func (app *Application) Mount() http.Handler {
